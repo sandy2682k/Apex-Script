@@ -39,7 +39,7 @@ public class OpportunityRecordTypeUpdater {
                                 // Update the Opportunity's RecordType to 'SaasOpportunity' record type
                             }
                         }
-                        if (!hasSupport && hasService) {
+                        if (hasSupport && hasService) {
                             // If no Support product is found but Service product is found
                             opp.RecordTypeId = saasOpportunityRecordTypeId;
                             // Update the Opportunity's RecordType to 'SaasOpportunity' record type
