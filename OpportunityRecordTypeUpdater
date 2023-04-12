@@ -1,0 +1,62 @@
+*Create an Apex script to add record type in opportunity records if it doesn't have any record type
+*we have 2 picklist values in field product families on the product2 object
+  1. Support & 2. Service
+*if any opportunity contains records with products having a product family of Support then the record type will be added to support
+*And if any opportunity contains records with products having product family of Service then the record type will be added to Saasopportunity
+
+
+public class OpportunityRecordTypeUpdater {
+    public static void updateOpportunityRecordTypes() {
+        try {
+            // Get the RecordType IDs for Support and SaaS Opportunity
+            Id supportRecordTypeId = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('Support').getRecordTypeId(); 
+            // Retrieve the RecordType ID for the 'Support' record type for Opportunity object
+            Id saasOpportunityRecordTypeId = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('SaasOpportunity').getRecordTypeId();
+            // Retrieve the RecordType ID for the 'SaasOpportunity' record type for Opportunity object
+            
+            // Get Opportunity records without RecordType
+            List<Opportunity> opportunitiesToUpdate = [SELECT Id, (SELECT Id, PricebookEntry.Product2.Family FROM OpportunityLineItems Limit 200) FROM Opportunity WHERE RecordTypeId = NULL];
+            // Retrieve Opportunities that do not have a RecordType assigned, along with their related OpportunityLineItems, limited to 200 records
+            
+            if (!opportunitiesToUpdate.isEmpty()) {
+                // Iterate through the opportunities and update the record type based on the related products' Product Family field
+                for (Opportunity opp : opportunitiesToUpdate) {
+                    if (opp.OpportunityLineItems.size() > 0) {
+                        Boolean hasSupport = false;
+                        Boolean hasService = false;
+                        for (OpportunityLineItem oli : opp.OpportunityLineItems) {
+                            if (oli.PricebookEntry.Product2.Family == 'Support') {
+                                // Check if the OpportunityLineItem's Product Family is 'Support'
+                                hasSupport = true;
+                                // Set a flag indicating that Support product is found
+                                opp.RecordTypeId = supportRecordTypeId;
+                                // Update the Opportunity's RecordType to 'Support' record type
+                            } else if (oli.PricebookEntry.Product2.Family == 'Service') {
+                                // Check if the OpportunityLineItem's Product Family is 'Service'
+                                hasService = true;
+                                // Set a flag indicating that Service product is found
+                                opp.RecordTypeId = saasOpportunityRecordTypeId;
+                                // Update the Opportunity's RecordType to 'SaasOpportunity' record type
+                            }
+                        }
+                        if (!hasSupport && hasService) {
+                            // If no Support product is found but Service product is found
+                            opp.RecordTypeId = saasOpportunityRecordTypeId;
+                            // Update the Opportunity's RecordType to 'SaasOpportunity' record type
+                        }
+                    }
+                }
+            }
+            
+            if(opportunitiesToUpdate!=null){
+                // Check if opportunitiesToUpdate list is not null
+                update opportunitiesToUpdate; 
+                // Update the Opportunity records with the new RecordType values
+            }
+        } catch (Exception ex) {
+            // Handle exception appropriately, e.g. log error, send notification, etc.
+            System.debug('Exception caught in updateOpportunityRecordTypes: ' + ex.getMessage() + ' at line : ' + ex.getLineNumber());
+            // Debug the exception message and the line number where the exception occurred
+        }
+    }
+}
