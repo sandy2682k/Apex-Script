@@ -15,40 +15,34 @@ public class OpportunityRecordTypeUpdater {
             // Retrieve the RecordType ID for the 'SaasOpportunity' record type for Opportunity object
             
             // Get Opportunity records without RecordType
-            List<Opportunity> opportunitiesToUpdate = [SELECT Id, (SELECT Id, PricebookEntry.Product2.Family FROM OpportunityLineItems Limit 200) FROM Opportunity WHERE RecordTypeId = NULL];
             // Retrieve Opportunities that do not have a RecordType assigned, along with their related OpportunityLineItems, limited to 200 records
-            
+            List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
             if (!opportunitiesToUpdate.isEmpty()) {
                 // Iterate through the opportunities and update the record type based on the related products' Product Family field
-                for (Opportunity opp : opportunitiesToUpdate) {
-                    if (opp.OpportunityLineItems.size() > 0) {
-                        Boolean hasSupport = false;
-                        Boolean hasService = false;
-                        for (OpportunityLineItem oli : opp.OpportunityLineItems) {
-                            if (oli.PricebookEntry.Product2.Family == 'Support') {
-                                // Check if the OpportunityLineItem's Product Family is 'Support'
-                                hasSupport = true;
-                                // Set a flag indicating that Support product is found
-                                opp.RecordTypeId = supportRecordTypeId;
-                                // Update the Opportunity's RecordType to 'Support' record type
-                            } else if (oli.PricebookEntry.Product2.Family == 'Service') {
-                                // Check if the OpportunityLineItem's Product Family is 'Service'
-                                hasService = true;
-                                // Set a flag indicating that Service product is found
-                                opp.RecordTypeId = saasOpportunityRecordTypeId;
-                                // Update the Opportunity's RecordType to 'SaasOpportunity' record type
-                            }
-                        }
-                        if (hasSupport && hasService) {
-                            // If no Support product is found but Service product is found
-                            opp.RecordTypeId = saasOpportunityRecordTypeId;
-                            // Update the Opportunity's RecordType to 'SaasOpportunity' record type
-                        }
-                    }
-                }
+                for (Opportunity opp : [SELECT Id, (SELECT Id, PricebookEntry.Product2.Family FROM OpportunityLineItems LIMIT 200) FROM Opportunity WHERE RecordTypeId IN 
+                                        (SELECT Id FROM RecordType WHERE Name IN ('Support', 'SaasOpportunity'))]) {
+                                            for (OpportunityLineItem oli : opp.OpportunityLineItems) {
+                                                if (oli.PricebookEntry.Product2.Family == 'Support') {
+                                                    // Check if the OpportunityLineItem's Product Family is 'Support'
+                                                    opp.RecordTypeId = supportRecordTypeId;
+                                                    // Update the Opportunity's RecordType to 'Support' record type
+                                                } else if (oli.PricebookEntry.Product2.Family == 'Service') {
+                                                    // Check if the OpportunityLineItem's Product Family is 'Service'
+                                                    opp.RecordTypeId = saasOpportunityRecordTypeId;
+                                                    // Update the Opportunity's RecordType to 'SaasOpportunity' record type
+                                                }
+                                                if (oli.PricebookEntry.Product2.Family == 'Support' && oli.PricebookEntry.Product2.Family == 'Service') {
+                                                    // If no Support product is found but Service product is found
+                                                    opp.RecordTypeId = saasOpportunityRecordTypeId;
+                                                    // Update the Opportunity's RecordType to 'SaasOpportunity' record type
+                                                }
+                                            }
+                                            
+                                            opportunitiesToUpdate.add(opp);
+                                        }                
             }
             
-            if(opportunitiesToUpdate!=null){
+            if(!opportunitiesToUpdate.isEmpty()){
                 // Check if opportunitiesToUpdate list is not null
                 update opportunitiesToUpdate; 
                 // Update the Opportunity records with the new RecordType values
