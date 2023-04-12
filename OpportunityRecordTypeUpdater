@@ -4,7 +4,6 @@
 *if any opportunity contains records with products having a product family of Support then the record type will be added to support
 *And if any opportunity contains records with products having product family of Service then the record type will be added to Saasopportunity
 
-
 public class OpportunityRecordTypeUpdater {
     public static void updateOpportunityRecordTypes() {
         try {
@@ -19,27 +18,27 @@ public class OpportunityRecordTypeUpdater {
             List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
             if (!opportunitiesToUpdate.isEmpty()) {
                 // Iterate through the opportunities and update the record type based on the related products' Product Family field
-                for (Opportunity opp : [SELECT Id, (SELECT Id, PricebookEntry.Product2.Family FROM OpportunityLineItems LIMIT 200) FROM Opportunity WHERE RecordTypeId IN 
-                                        (SELECT Id FROM RecordType WHERE Name IN ('Support', 'SaasOpportunity'))]) {
-                                            for (OpportunityLineItem oli : opp.OpportunityLineItems) {
-                                                if (oli.PricebookEntry.Product2.Family == 'Support') {
-                                                    // Check if the OpportunityLineItem's Product Family is 'Support'
-                                                    opp.RecordTypeId = supportRecordTypeId;
-                                                    // Update the Opportunity's RecordType to 'Support' record type
-                                                } else if (oli.PricebookEntry.Product2.Family == 'Service') {
-                                                    // Check if the OpportunityLineItem's Product Family is 'Service'
-                                                    opp.RecordTypeId = saasOpportunityRecordTypeId;
-                                                    // Update the Opportunity's RecordType to 'SaasOpportunity' record type
-                                                }
-                                                if (oli.PricebookEntry.Product2.Family == 'Support' && oli.PricebookEntry.Product2.Family == 'Service') {
-                                                    // If no Support product is found but Service product is found
-                                                    opp.RecordTypeId = saasOpportunityRecordTypeId;
-                                                    // Update the Opportunity's RecordType to 'SaasOpportunity' record type
-                                                }
-                                            }
-                                            
-                                            opportunitiesToUpdate.add(opp);
-                                        }                
+                for (Opportunity opp : [SELECT Id, (SELECT Id, PricebookEntry.Product2.Family FROM OpportunityLineItems where PricebookEntry.Product2.Family='Support' And PricebookEntry.Product2.Family='SaasOpportunity' ) FROM Opportunity WHERE RecordTypeId = NULL AND Opportunity.HasOpportunityLineItem = true ]) {
+                    for (OpportunityLineItem oli : opp.OpportunityLineItems) {
+                        if (oli.PricebookEntry.Product2.Family == 'Support') {
+                            // Check if the OpportunityLineItem's Product Family is 'Support'
+                            opp.RecordTypeId = supportRecordTypeId;
+                            // Update the Opportunity's RecordType to 'Support' record type
+                        } else if (oli.PricebookEntry.Product2.Family == 'Service') {
+                            // Check if the OpportunityLineItem's Product Family is 'Service'
+                            opp.RecordTypeId = saasOpportunityRecordTypeId;
+                            // Update the Opportunity's RecordType to 'SaasOpportunity' record type
+                        }
+                        if (oli.PricebookEntry.Product2.Family == 'Support' && oli.PricebookEntry.Product2.Family == 'Service') {
+                            // If no Support product is found but Service product is found
+                            opp.RecordTypeId = saasOpportunityRecordTypeId;
+                            // Update the Opportunity's RecordType to 'SaasOpportunity' record type
+                    
+                        }
+                      opportunitiesToUpdate.add(opp);
+                    }
+  
+                }                
             }
             
             if(!opportunitiesToUpdate.isEmpty()){
