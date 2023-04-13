@@ -29,7 +29,7 @@ public class OpportunityRecordTypeUpdater {
                             opp.RecordTypeId = saasOpportunityRecordTypeId;
                             // Update the Opportunity's RecordType to 'SaaS_Opportunity' record type
                         }
-                        if (oli.PricebookEntry.Product2.Family == 'Coaching' && oli.PricebookEntry.Product2.Family =='Platform') {
+                        else if (oli.PricebookEntry.Product2.Family == 'Coaching' && oli.PricebookEntry.Product2.Family =='Platform') {
                            
                             opp.RecordTypeId = saasOpportunityRecordTypeId;
                             // Update the Opportunity's RecordType to 'SaasOpportunity' record type
