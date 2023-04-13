@@ -6,50 +6,48 @@
 
 public class OpportunityRecordTypeUpdater {
     public static void updateOpportunityRecordTypes() {
+        
         try {
             // Get the RecordType IDs for Services_Opportunity and SaaS_Opportunity Opportunity
             Id ServicestRecordTypeId = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('Services Opportunity').getRecordTypeId(); 
-            system.debug('ServicestRecordTypeId '+ServicestRecordTypeId);
-            // Retrieve the RecordType ID for the 'Services_Opportunity' record type for Opportunity object
-            Id saasOpportunityRecordTypeId = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('SaaS Opportunity').getRecordTypeId();
-             system.debug('saasOpportunityRecordTypeId '+saasOpportunityRecordTypeId);
             // Retrieve the RecordType ID for the 'SaaS_Opportunity' record type for Opportunity object
-            
-            // Get Opportunity records without RecordType
-            // Retrieve Opportunities that do not have a RecordType assigned, along with their related OpportunityLineItems, limited to 200 records
+            Id saasOpportunityRecordTypeId = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('SaaS Opportunity').getRecordTypeId();
             List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
-            system.debug('opportunitiesToUpdate LINE NUM 14'+opportunitiesToUpdate);
-            // Iterate through the opportunities and update the record type based on the related products' Product Family field
-            for (Opportunity opp : [SELECT Id, (SELECT Id, PricebookEntry.Product2.Family FROM OpportunityLineItems where PricebookEntry.Product2.Family='Coaching' OR PricebookEntry.Product2.Family='Platform' Limit 1) FROM Opportunity WHERE RecordTypeId = NULL AND Opportunity.HasOpportunityLineItem = true]) {
-                  system.debug('opp QUERY LINE NUM 18'+opp);
+            
+            // Get Opportunity records without RecordType & Opportunity product 
+            for (Opportunity opp : [SELECT Id, (SELECT Id, PricebookEntry.Product2.Family FROM OpportunityLineItems where PricebookEntry.Product2.Family='Coaching' OR PricebookEntry.Product2.Family='Platform' Limit 200) FROM Opportunity WHERE RecordTypeId = NULL AND Opportunity.HasOpportunityLineItem = true ]) {
+                Boolean isPlatform=false;
+                Boolean isCoaching = false;
                 for (OpportunityLineItem oli : opp.OpportunityLineItems) {
-                    if (oli.PricebookEntry.Product2.Family == 'Coaching') {
+                    if (oli.PricebookEntry.Product2.Family == 'Platform') {
+                        isPlatform=true;
+                        
+                    }if (oli.PricebookEntry.Product2.Family == 'Coaching'){
                         // Check if the OpportunityLineItem's Product Family is 'Coaching'
-                        opp.RecordTypeId = ServicestRecordTypeId;
-                        break;
-                        // Update the Opportunity's RecordType to Services_Opportunity record type
-                    } else if (oli.PricebookEntry.Product2.Family == 'Platform') {
-                        // Check if the OpportunityLineItem's Product Family is 'Platform'
-                        opp.RecordTypeId = saasOpportunityRecordTypeId;
-                        // Update the Opportunity's RecordType to 'SaaS_Opportunity' record type
-                        break;
-                    }
+                        isCoaching = true;
+                        
+                    } 
                     
                 }
-                opportunitiesToUpdate.add(opp);
-                system.debug('add method opp Line num 31'+opp);
-            }
+                if(opp.OpportunityLineItems.size()>0){
+                    if(isPlatform)
+                        opp.RecordTypeId = saasOpportunityRecordTypeId;
+                    else if(isCoaching )
+                        opp.RecordTypeId = ServicestRecordTypeId;
+                    
+                    opportunitiesToUpdate.add(opp);
+                }
+                
+            }                
+            
             
             if(!opportunitiesToUpdate.isEmpty()){
-                // Check if opportunitiesToUpdate list is not null
-                update opportunitiesToUpdate; 
-                system.debug('opportunitiesToUpdate LINE NUM 36 '+opportunitiesToUpdate);
-                // Update the Opportunity records with the new RecordType values
+                database.update(opportunitiesToUpdate, false); 
             }
         } catch (Exception ex) {
-            // Handle exception appropriately, e.g. log error, send notification, etc.
-            System.debug('Exception caught in updateOpportunityRecordTypes: ' + ex.getMessage() + ' at line : ' + ex.getLineNumber());
-            // Debug the exception message and the line number where the exception occurred
+            // Handle exception
+            System.debug('Exception caught: ' + ex.getMessage() + ' at line : ' + ex.getLineNumber());
         }
     }
 }
+
